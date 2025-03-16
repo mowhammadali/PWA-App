@@ -1,7 +1,8 @@
 const cacheVersion = 3;
 
 const activeCaches = {
-  weather: `weather-v${cacheVersion}`,
+  static: `static-v${cacheVersion}`,
+  dynamic: `dynamic-v${cacheVersion}`,
 };
 
 self.addEventListener("install", (event) => {
@@ -9,7 +10,7 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 
   event.waitUntil(
-    caches.open(activeCaches["weather"]).then((cache) => {
+    caches.open(activeCaches["static"]).then((cache) => {
       cache.addAll(["/", "./styles.css", "./js/app.js"]);
     })
   );
@@ -40,7 +41,13 @@ self.addEventListener("fetch", (event) => {
     caches.match(event.request).then((response) => {
       if (response) {
         return response;
-      } else return fetch(event.request);
+      } else
+        return fetch(event.request).then((serverResponse) => {
+          caches.open(activeCaches["dynamic"]).then((cach) => {
+            cach.put(event.request, serverResponse.clone());
+            return serverResponse;
+          });
+        });
     })
   );
 });
