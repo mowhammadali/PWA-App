@@ -11,7 +11,7 @@ self.addEventListener("install", (event) => {
 
   event.waitUntil(
     caches.open(activeCaches["static"]).then((cache) => {
-      cache.addAll(["/", "./styles.css", "./js/app.js"]);
+      cache.addAll(["/", "./styles.css", "./js/app.js", "/fallback.html"]);
     })
   );
 });
@@ -39,19 +39,23 @@ self.addEventListener("fetch", (event) => {
 
   // types of strategies
   // 1. first cache second network
-  // event.respondWith(
-  //   caches.match(event.request).then((response) => {
-  //     if (response) {
-  //       return response;
-  //     } else
-  //       return fetch(event.request).then((serverResponse) => {
-  //         caches.open(activeCaches["dynamic"]).then((cach) => {
-  //           cach.put(event.request, serverResponse.clone());
-  //           return serverResponse;
-  //         });
-  //       });
-  //   })
-  // );
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      if (response) {
+        return response;
+      } else
+        return fetch(event.request)
+          .then((serverResponse) => {
+            caches.open(activeCaches["dynamic"]).then((cach) => {
+              cach.put(event.request, serverResponse.clone());
+              return serverResponse;
+            });
+          })
+          .catch(() => {
+            return caches.match("/fallback.html");
+          });
+    })
+  );
 
   // 2. network only
   // event.respondWith(fetch(event.request));
@@ -60,17 +64,17 @@ self.addEventListener("fetch", (event) => {
   // event.respondWith(caches.match(event.request));
 
   // 4. first network second cache
-  return event.respondWith(
-    fetch(event.request).then((serverResponse) => {
-      return caches
-        .open(activeCaches["dynamic"])
-        .then((cach) => {
-          cach.put(event.request, serverResponse.clone());
-          return serverResponse;
-        })
-        .catch(() => {
-          caches.match(event.request);
-        });
-    })
-  );
+  // return event.respondWith(
+  //   fetch(event.request).then((serverResponse) => {
+  //     return caches
+  //       .open(activeCaches["dynamic"])
+  //       .then((cach) => {
+  //         cach.put(event.request, serverResponse.clone());
+  //         return serverResponse;
+  //       })
+  //       .catch(() => {
+  //         caches.match(event.request);
+  //       });
+  //   })
+  // );
 });
