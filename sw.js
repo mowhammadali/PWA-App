@@ -37,16 +37,39 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   console.log(event.request);
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      if (response) {
-        return response;
-      } else
-        return fetch(event.request).then((serverResponse) => {
-          caches.open(activeCaches["dynamic"]).then((cach) => {
-            cach.put(event.request, serverResponse.clone());
-            return serverResponse;
-          });
+  // types of strategies
+  // 1. first cache second network
+  // event.respondWith(
+  //   caches.match(event.request).then((response) => {
+  //     if (response) {
+  //       return response;
+  //     } else
+  //       return fetch(event.request).then((serverResponse) => {
+  //         caches.open(activeCaches["dynamic"]).then((cach) => {
+  //           cach.put(event.request, serverResponse.clone());
+  //           return serverResponse;
+  //         });
+  //       });
+  //   })
+  // );
+
+  // 2. network only
+  // event.respondWith(fetch(event.request));
+
+  // 3. cache only
+  // event.respondWith(caches.match(event.request));
+
+  // 4. first network second cache
+  return event.respondWith(
+    fetch(event.request).then((serverResponse) => {
+      return caches
+        .open(activeCaches["dynamic"])
+        .then((cach) => {
+          cach.put(event.request, serverResponse.clone());
+          return serverResponse;
+        })
+        .catch(() => {
+          caches.match(event.request);
         });
     })
   );
